@@ -10,3 +10,5 @@ npm-debug.log
 
 # JetBrains IDE
 .idea
+
+.DS_Store
