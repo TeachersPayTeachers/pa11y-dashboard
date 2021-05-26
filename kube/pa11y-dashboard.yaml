@@ -1,0 +1,65 @@
+# Deployment defines how to run an app in the cluster
+# But, it doesn't make it available to other apps
+# To expose your app, you need a Kubernetes "Service"
+# Without a Service, a Pod cannot be accessed at all
+# A Service forwards requests to a set of Pods
+# A Service is akin to a load balancer
+# Services ensures continuous availablility for your app
+#   if one of the Pod crashes and is restarted, the Service
+#   makes sure not to route traffic to this container
+# Service discovery is a critical Kubernetes concept.
+# Pods within a cluster can talk to each other through the names of the Services exposing them.
+
+# Similarly to how Docker provides DNS resolution for containers, Kubernetes provides DNS resolution for Services.
+
+# Service
+apiVersion: v1
+kind: Service
+metadata:
+  name: pa11y-dashboard
+spec:
+  # all pods that have label of app: pa11y-dashboard
+  # will be exposed by the Service
+  # matches the spec.template.metadata.labels.app in Deployment
+  selector:
+    app: pa11y-dashboard
+  ports:
+    # the Service listens for requests on port 80
+    # and forwards them to port 4000 of the target Pods
+    - port: 80
+      targetPort: 4000
+  # makes the exposed Pods accessible from outside the cluster
+  # default Service type is `ClusterIP` which makes
+  # the exposed Pods only accessible within the cluster
+  type: LoadBalancer
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pa11y-dashboard
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pa11y-dashboard
+  template:
+    metadata:
+      # defines a label for the Pods that wrap your pa11y-dashboard container
+      # this is the label that ties your Service to your Deployment resource
+      labels:
+        app: pa11y-dashboard
+    spec:
+      containers:
+        # name for the container
+        - name: pa11y-dashboard
+          # name of the docker image
+          image: grelas/pa11y-dashboard:1.0.0
+          # port that the container listens on
+          ports:
+            - containerPort: 4000
+          # environment variable that will be made
+          # available to the process in the container
+          env:
+            - name: MONGO_URL
+              value: mongodb://mongo:27017/pa11ydashy
+          imagePullPolicy: Always
